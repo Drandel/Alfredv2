@@ -21,10 +21,14 @@ const rest = new REST().setToken(config.token);
 
 console.log(`Deploying ${commands.length} slash command(s)...`);
 
-const route = config.guildId
-  ? Routes.applicationGuildCommands(config.clientId, config.guildId)
-  : Routes.applicationCommands(config.clientId);
-
-const data = await rest.put(route, { body: commands });
-
-console.log(`Successfully deployed ${data.length} slash command(s)`);
+if (config.guildIds.length > 0) {
+  for (const guildId of config.guildIds) {
+    const route = Routes.applicationGuildCommands(config.clientId, guildId);
+    const data = await rest.put(route, { body: commands });
+    console.log(`Deployed ${data.length} command(s) to guild ${guildId}`);
+  }
+} else {
+  const route = Routes.applicationCommands(config.clientId);
+  const data = await rest.put(route, { body: commands });
+  console.log(`Deployed ${data.length} command(s) globally`);
+}
