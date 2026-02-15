@@ -98,13 +98,14 @@ This ensures Alfred starts automatically if the droplet reboots.
 
 ## 10. Deploying Updates
 
-When you merge changes to `main` and want to update production:
+When you merge changes to `main` and want to update production, run the deploy script **from your local machine**:
 
 ```bash
-ssh root@your-droplet-ip
-cd /home/alfred/Alfredv2   # or wherever you cloned it
-git pull
-npm install                 # only if dependencies changed
-npm run deploy              # only if slash commands changed
-pm2 restart alfred
+bash scripts/deploy-prod.sh
 ```
+
+This SSHs into the droplet and handles everything — pulls latest code, installs dependencies, deploys slash commands, and restarts the bot.
+
+The script is configured in `scripts/deploy-prod.sh` with the droplet IP and project path.
+
+**Note:** The first time you run this, SSH will ask you to verify the host fingerprint. You must type `yes` (the full word) and press Enter — just pressing Enter will fail with "Host key verification failed".

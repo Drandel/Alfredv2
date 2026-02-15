@@ -2,13 +2,13 @@
 set -e
 
 DROPLET_USER="root"
-DROPLET_IP="your-droplet-ip"
-APP_DIR="/home/alfred/Alfredv2"
+DROPLET_IP="104.248.221.98"
+APP_DIR="/root/Alfredv2"
 
 echo "Connecting to droplet..."
 ssh "${DROPLET_USER}@${DROPLET_IP}" << 'EOF'
   set -e
-  cd /home/alfred/Alfredv2
+  cd /root/Alfredv2
 
   echo "Pulling latest changes..."
   git pull
