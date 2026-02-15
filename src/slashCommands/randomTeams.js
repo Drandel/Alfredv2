@@ -13,7 +13,7 @@ function formatTeamsTable(team1, team2) {
   const maxLength = Math.max(...[...team1, ...team2].map(n => n.length)) + 5;
   const maxRows = Math.max(team1.length, team2.length);
 
-  let table = `Team 1${' '.repeat(maxLength - 5)}| Team 2\n`;
+  let table = `Team 1${' '.repeat(maxLength - 6)}| Team 2\n`;
   table += `${'-'.repeat(maxLength)}+${'-'.repeat(maxLength)}\n`;
 
   for (let i = 0; i < maxRows; i++) {
