@@ -5,4 +5,5 @@ export const config = {
   clientId: process.env.CLIENT_ID,
   guildIds: process.env.GUILD_IDS ? process.env.GUILD_IDS.split(',').map(id => id.trim()) : [],
   prefix: process.env.PREFIX || '!',
+  steamApiKey: process.env.STEAM_API_KEY || '',
 };
