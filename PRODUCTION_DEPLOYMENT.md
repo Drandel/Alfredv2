@@ -53,8 +53,11 @@ nano .env
 ```
 DISCORD_TOKEN=your-production-bot-token
 CLIENT_ID=your-production-client-id
+GUILD_ID=your-discord-server-id
 PREFIX=!
 ```
+
+`GUILD_ID` enables instant slash command registration for your server. Without it, commands are registered globally and can take up to 1 hour to propagate. Get the guild ID by right-clicking your server name in Discord (with Developer Mode enabled) and selecting "Copy Server ID".
 
 Save and exit (`Ctrl+X`, `Y`, `Enter`).
 
@@ -105,6 +108,8 @@ bash scripts/deploy-prod.sh
 ```
 
 This SSHs into the droplet and handles everything — pulls latest code, installs dependencies, deploys slash commands, and restarts the bot.
+
+**Important:** Slash command deployment (`node deploy-commands.js`) should only be run on the production server, not locally. The local `.env` has dev bot credentials which differ from production. The deploy script handles this automatically.
 
 The script is configured in `scripts/deploy-prod.sh` with the droplet IP and project path.
 
