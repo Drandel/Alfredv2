@@ -27,6 +27,20 @@ const commandDetails = {
       '• `/randomteams players: Dean, David, John` — Use a custom list of names',
     ].join('\n'),
   },
+  gamenews: {
+    emoji: '🎮',
+    description: [
+      'Track Steam game news and post updates automatically.',
+      '',
+      '**Subcommands:**',
+      '• `/gamenews enable #channel` — Enable auto-checking and set where news is posted',
+      '• `/gamenews disable` — Turn off automatic news checking',
+      '• `/gamenews add [appId]` — Add a Steam game by its App ID',
+      '• `/gamenews remove [appId]` — Remove a game from tracking',
+      '• `/gamenews list` — Show tracked games and current settings',
+      '• `/gamenews check` — Manually check for new articles right now',
+    ].join('\n'),
+  },
 };
 
 export default {
