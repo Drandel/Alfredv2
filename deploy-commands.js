@@ -5,7 +5,7 @@ import path from 'path';
 import { config } from './src/config.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Z]:)/, '$1');
-const commandsDir = path.join(__dirname, 'src', 'commands');
+const commandsDir = path.join(__dirname, 'src', 'slashCommands');
 
 const commands = [];
 const files = readdirSync(commandsDir).filter(f => f.endsWith('.js'));

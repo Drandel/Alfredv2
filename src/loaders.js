@@ -16,7 +16,7 @@ async function importAll(dir) {
 }
 
 export async function loadSlashCommands(client) {
-  const dir = path.join(__dirname, 'commands');
+  const dir = path.join(__dirname, 'slashCommands');
   const commands = await importAll(dir);
   for (const cmd of commands) {
     client.commands.set(cmd.data.name, cmd);
