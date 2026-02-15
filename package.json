@@ -1,0 +1,18 @@
+{
+  "name": "alfredv2",
+  "version": "1.0.0",
+  "description": "Alfred v2 - Custom Discord bot",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "keywords": [],
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.3.1"
+  }
+}
