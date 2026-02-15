@@ -21,12 +21,10 @@ const rest = new REST().setToken(config.token);
 
 console.log(`Deploying ${commands.length} slash command(s)...`);
 
-// Registers commands globally (available in all servers the bot is in).
-// Takes up to 1 hour to propagate. For instant updates during dev,
-// use Routes.applicationGuildCommands(clientId, guildId) instead.
-const data = await rest.put(
-  Routes.applicationCommands(config.clientId),
-  { body: commands },
-);
+const route = config.guildId
+  ? Routes.applicationGuildCommands(config.clientId, config.guildId)
+  : Routes.applicationCommands(config.clientId);
+
+const data = await rest.put(route, { body: commands });
 
 console.log(`Successfully deployed ${data.length} slash command(s)`);
