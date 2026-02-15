@@ -13,6 +13,10 @@ const commandDetails = {
     emoji: '🎲',
     description: 'Get a random status update on David. Covers topics including his mass, depression, music career, electrician skills, and War Thunder gameplay.',
   },
+  roast: {
+    emoji: '🔥',
+    description: 'Roast someone in the server. Pick a target and let Alfred do the rest. No mercy.',
+  },
   randomteams: {
     emoji: '⚔️',
     description: [
