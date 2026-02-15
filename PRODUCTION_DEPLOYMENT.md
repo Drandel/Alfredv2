@@ -1,0 +1,110 @@
+# Production Deployment
+
+How to deploy Alfred to a Digital Ocean droplet (Ubuntu) with pm2.
+
+## 1. SSH Into Your Droplet
+
+```bash
+ssh root@your-droplet-ip
+```
+
+## 2. Install Node.js
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+Verify with `node -v` and `npm -v`.
+
+## 3. Install pm2
+
+```bash
+npm install -g pm2
+```
+
+## 4. Create a Bot User (Optional but Recommended)
+
+Avoids running the bot as root:
+
+```bash
+adduser --disabled-password --gecos "" alfred
+su - alfred
+```
+
+## 5. Clone the Repo
+
+As the `alfred` user (or root if you skipped step 4):
+
+```bash
+git clone https://github.com/Drandel/Alfredv2.git
+cd Alfredv2
+npm install
+```
+
+## 6. Create the `.env`
+
+This is the **production** bot — a separate application from your dev bots. Create one at the [Discord Developer Portal](https://discord.com/developers/applications) and follow the same setup steps in [DEV_BOT_SERVER_INTEGRATION.md](DEV_BOT_SERVER_INTEGRATION.md).
+
+```bash
+nano .env
+```
+
+```
+DISCORD_TOKEN=your-production-bot-token
+CLIENT_ID=your-production-client-id
+PREFIX=!
+```
+
+Save and exit (`Ctrl+X`, `Y`, `Enter`).
+
+## 7. Deploy Slash Commands & Test
+
+```bash
+npm run deploy
+npm start
+```
+
+If you see `Logged in as Alfred#1234`, it works. Kill it with `Ctrl+C` — pm2 will manage it from here.
+
+## 8. Start With pm2
+
+```bash
+pm2 start src/index.js --name alfred
+```
+
+Useful pm2 commands:
+
+| Command | What it does |
+|---|---|
+| `pm2 logs alfred` | View live logs |
+| `pm2 restart alfred` | Restart after pulling changes |
+| `pm2 stop alfred` | Stop the bot |
+| `pm2 status` | See running processes |
+
+## 9. Auto-Start on Reboot
+
+```bash
+pm2 startup
+```
+
+Follow the command it prints (copy/paste it), then:
+
+```bash
+pm2 save
+```
+
+This ensures Alfred starts automatically if the droplet reboots.
+
+## 10. Deploying Updates
+
+When you merge changes to `main` and want to update production:
+
+```bash
+ssh root@your-droplet-ip
+cd /home/alfred/Alfredv2   # or wherever you cloned it
+git pull
+npm install                 # only if dependencies changed
+npm run deploy              # only if slash commands changed
+pm2 restart alfred
+```
