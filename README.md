@@ -28,24 +28,26 @@ Commands and events are loaded automatically from their folders at startup. No m
 ## Getting Started
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Copy `.env.example` to `.env` and fill in your values (see [DEV_BOT_SERVER_INTEGRATION.md](DEV_BOT_SERVER_INTEGRATION.md) for full setup instructions):
+
    ```
    DISCORD_TOKEN=your-bot-token
    CLIENT_ID=your-application-id
    GUILD_IDS=comma,separated,guild,ids
    PREFIX=!
    STEAM_API_KEY=
-   DROPLET_USER=root
-   DROPLET_IP=your-server-ip
-   APP_DIR=/root/Alfredv2
-   PM2_PROCESS_NAME=alfred
+   DROPLET_USER=myUser
+   APP_DIR=/path/to/app
+   PM2_PROCESS_NAME=process_name
    ```
 
 3. Register slash commands with Discord:
+
    ```bash
    npm run deploy
    ```
@@ -62,14 +64,12 @@ Commands and events are loaded automatically from their folders at startup. No m
 Create a new file in `src/slashCommands/` (e.g. `src/slashCommands/hello.js`):
 
 ```js
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder } from "discord.js";
 
 export default {
-  data: new SlashCommandBuilder()
-    .setName('hello')
-    .setDescription('Says hello'),
+  data: new SlashCommandBuilder().setName("hello").setDescription("Says hello"),
   async execute(interaction) {
-    await interaction.reply('Hello!');
+    await interaction.reply("Hello!");
   },
 };
 ```
@@ -82,9 +82,9 @@ Create a new file in `src/prefixCommands/` (e.g. `src/prefixCommands/hello.js`):
 
 ```js
 export default {
-  name: 'hello',
+  name: "hello",
   async execute(message, args) {
-    await message.reply('Hello!');
+    await message.reply("Hello!");
   },
 };
 ```
@@ -93,14 +93,14 @@ Prefix commands work immediately on restart — no deploy step needed.
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `DISCORD_TOKEN` | Yes | Bot token from the Discord developer portal |
-| `CLIENT_ID` | Yes | Application ID from the Discord developer portal |
-| `GUILD_IDS` | No | Comma-separated guild IDs for guild-scoped command deployment. If omitted, commands deploy globally. |
-| `PREFIX` | No | Prefix for text commands (default: `!`) |
-| `STEAM_API_KEY` | No | Steam Web API key for `/gamenews` news tracking |
-| `DROPLET_USER` | No | SSH user for production deployment (default: `root`) |
-| `DROPLET_IP` | No | IP address of the production server |
-| `APP_DIR` | No | App directory on the production server (default: `/root/Alfredv2`) |
-| `PM2_PROCESS_NAME` | No | PM2 process name on the production server (default: `alfred`) |
+| Variable           | Required | Description                                                                                          |
+| ------------------ | -------- | ---------------------------------------------------------------------------------------------------- |
+| `DISCORD_TOKEN`    | Yes      | Bot token from the Discord developer portal                                                          |
+| `CLIENT_ID`        | Yes      | Application ID from the Discord developer portal                                                     |
+| `GUILD_IDS`        | No       | Comma-separated guild IDs for guild-scoped command deployment. If omitted, commands deploy globally. |
+| `PREFIX`           | No       | Prefix for text commands (default: `!`)                                                              |
+| `STEAM_API_KEY`    | No       | Steam Web API key for `/gamenews` news tracking                                                      |
+| `DROPLET_USER`     | No       | SSH user for production deployment (default: `root`)                                                 |
+| `DROPLET_IP`       | No       | IP address of the production server                                                                  |
+| `APP_DIR`          | No       | App directory on the production server (default: `/root/Alfredv2`)                                   |
+| `PM2_PROCESS_NAME` | No       | PM2 process name on the production server (default: `alfred`)                                        |
