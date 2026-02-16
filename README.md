@@ -59,6 +59,8 @@ Commands and events are loaded automatically from their folders at startup. No m
 
 ## Adding Commands
 
+All `.js` files in the command directories are automatically discovered and registered at startup — just drop in a file and restart the bot.
+
 ### Slash Command
 
 Create a new file in `src/slashCommands/` (e.g. `src/slashCommands/hello.js`):
@@ -74,7 +76,7 @@ export default {
 };
 ```
 
-Then run `npm run deploy` to register it with Discord.
+The bot picks it up on restart. You also need to run `npm run deploy` once to register the command with the Discord API so it shows up in the slash command menu.
 
 ### Prefix Command
 
@@ -89,7 +91,7 @@ export default {
 };
 ```
 
-Prefix commands work immediately on restart — no deploy step needed.
+Prefix commands work immediately on restart — no deploy step needed since they don't register with the Discord API.
 
 ## Environment Variables
 
