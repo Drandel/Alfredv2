@@ -1,14 +1,18 @@
 #!/bin/bash
 set -e
 
-DROPLET_USER="root"
-DROPLET_IP="104.248.221.98"
-APP_DIR="/root/Alfredv2"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${SCRIPT_DIR}/../.env"
 
-echo "Connecting to droplet..."
-ssh "${DROPLET_USER}@${DROPLET_IP}" << 'EOF'
+: "${DROPLET_USER:?DROPLET_USER is not set in .env}"
+: "${DROPLET_IP:?DROPLET_IP is not set in .env}"
+: "${APP_DIR:?APP_DIR is not set in .env}"
+: "${PM2_PROCESS_NAME:?PM2_PROCESS_NAME is not set in .env}"
+
+echo "Connecting to ${DROPLET_USER}@${DROPLET_IP}..."
+ssh "${DROPLET_USER}@${DROPLET_IP}" << EOF
   set -e
-  cd /root/Alfredv2
+  cd ${APP_DIR}
 
   echo "Pulling latest changes..."
   git pull
@@ -20,8 +24,8 @@ ssh "${DROPLET_USER}@${DROPLET_IP}" << 'EOF'
   npm run deploy
 
   echo "Restarting bot..."
-  pm2 restart alfred
+  pm2 restart ${PM2_PROCESS_NAME}
 
   echo "Done! Current status:"
-  pm2 status alfred
+  pm2 status ${PM2_PROCESS_NAME}
 EOF
