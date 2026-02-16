@@ -9,13 +9,21 @@ src/
 ├── index.js             # Entry point — creates the client and loads everything
 ├── config.js            # Reads environment variables from .env
 ├── loaders.js           # Auto-discovers and registers commands & events
-├── commands/            # Slash commands — one file per command
+├── slashCommands/       # Slash commands — one file per command
 ├── prefixCommands/      # Prefix commands (!command) — one file per command
+├── services/            # Background services (e.g. Steam news tracker)
 └── events/              # Discord event handlers — one file per event
+scripts/
+└── deploy-prod.sh       # Deploys to production (pull, install, deploy commands, restart)
 deploy-commands.js       # Registers slash commands with the Discord API
 ```
 
 Commands and events are loaded automatically from their folders at startup. No manual registration needed — just drop in a file.
+
+## Prerequisites
+
+- Node.js 22+
+- A Discord bot application ([setup guide](DEV_BOT_SERVER_INTEGRATION.md))
 
 ## Getting Started
 
@@ -24,11 +32,17 @@ Commands and events are loaded automatically from their folders at startup. No m
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and fill in your bot token and client ID (see [DEV_BOT_SERVER_INTEGRATION.md](DEV_BOT_SERVER_INTEGRATION.md) for full setup instructions):
+2. Copy `.env.example` to `.env` and fill in your values (see [DEV_BOT_SERVER_INTEGRATION.md](DEV_BOT_SERVER_INTEGRATION.md) for full setup instructions):
    ```
    DISCORD_TOKEN=your-bot-token
    CLIENT_ID=your-application-id
+   GUILD_IDS=comma,separated,guild,ids
    PREFIX=!
+   STEAM_API_KEY=
+   DROPLET_USER=root
+   DROPLET_IP=your-server-ip
+   APP_DIR=/root/Alfredv2
+   PM2_PROCESS_NAME=alfred
    ```
 
 3. Register slash commands with Discord:
@@ -45,7 +59,7 @@ Commands and events are loaded automatically from their folders at startup. No m
 
 ### Slash Command
 
-Create a new file in `src/commands/` (e.g. `src/commands/hello.js`):
+Create a new file in `src/slashCommands/` (e.g. `src/slashCommands/hello.js`):
 
 ```js
 import { SlashCommandBuilder } from 'discord.js';
@@ -76,3 +90,17 @@ export default {
 ```
 
 Prefix commands work immediately on restart — no deploy step needed.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `DISCORD_TOKEN` | Yes | Bot token from the Discord developer portal |
+| `CLIENT_ID` | Yes | Application ID from the Discord developer portal |
+| `GUILD_IDS` | No | Comma-separated guild IDs for guild-scoped command deployment. If omitted, commands deploy globally. |
+| `PREFIX` | No | Prefix for text commands (default: `!`) |
+| `STEAM_API_KEY` | No | Steam Web API key for `/gamenews` news tracking |
+| `DROPLET_USER` | No | SSH user for production deployment (default: `root`) |
+| `DROPLET_IP` | No | IP address of the production server |
+| `APP_DIR` | No | App directory on the production server (default: `/root/Alfredv2`) |
+| `PM2_PROCESS_NAME` | No | PM2 process name on the production server (default: `alfred`) |
