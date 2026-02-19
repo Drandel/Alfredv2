@@ -27,6 +27,16 @@ const commandDetails = {
       '• `/randomteams players: Dean, David, John` — Use a custom list of names',
     ].join('\n'),
   },
+  rotation: {
+    emoji: '🔄',
+    description: [
+      'Generate a random player rotation order.',
+      '',
+      '**Two ways to use:**',
+      '• `/rotation` — Shows a menu of your voice channel members to pick from (all pre-selected)',
+      '• `/rotation players: Dean, Sergio, Aidan` — Use a custom list of names (skips the menu)',
+    ].join('\n'),
+  },
   gamenews: {
     emoji: '🎮',
     description: [
