@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
+import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 function shuffleArray(array) {
   const shuffled = [...array];
@@ -74,37 +74,55 @@ export default {
       .setMaxValues(options.length)
       .addOptions(options);
 
-    const row = new ActionRowBuilder().addComponents(selectMenu);
+    const submitButton = new ButtonBuilder()
+      .setCustomId('rotation-submit')
+      .setLabel('Generate Rotation')
+      .setStyle(ButtonStyle.Primary);
+
+    const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+    const buttonRow = new ActionRowBuilder().addComponents(submitButton);
 
     const reply = await interaction.reply({
-      content: '**Select players for the rotation:**\nDeselect anyone you want to exclude, then submit.',
-      components: [row],
+      content: '**Select players for the rotation:**\nDeselect anyone you want to exclude, then hit **Generate Rotation**.',
+      components: [selectRow, buttonRow],
       ephemeral: true,
     });
 
-    try {
-      const selection = await reply.awaitMessageComponent({
-        filter: i => i.customId === 'rotation-select' && i.user.id === interaction.user.id,
-        time: 60_000,
-      });
+    // Track current selections (start with all members selected)
+    let selectedIds = members.map(member => member.id);
 
-      // Map selected member IDs back to display names
-      const selectedPlayers = selection.values.map(id => {
-        const member = members.get(id);
-        return member ? member.displayName : id;
-      });
+    const collector = reply.createMessageComponentCollector({
+      filter: i => i.user.id === interaction.user.id,
+      time: 60_000,
+    });
 
-      // Remove the ephemeral menu and send a public message with the result
-      await selection.update({
-        content: 'Rotation generated!',
-        components: [],
-      });
-      await interaction.channel.send(formatRotation(selectedPlayers));
-    } catch {
-      await interaction.editReply({
-        content: 'Rotation selection timed out.',
-        components: [],
-      });
-    }
+    collector.on('collect', async (i) => {
+      if (i.customId === 'rotation-select') {
+        selectedIds = i.values;
+        await i.deferUpdate();
+      } else if (i.customId === 'rotation-submit') {
+        collector.stop('submitted');
+
+        const selectedPlayers = selectedIds.map(id => {
+          const member = members.get(id);
+          return member ? member.displayName : id;
+        });
+
+        await i.update({
+          content: 'Rotation generated!',
+          components: [],
+        });
+        await interaction.channel.send(formatRotation(selectedPlayers));
+      }
+    });
+
+    collector.on('end', (_, reason) => {
+      if (reason !== 'submitted') {
+        interaction.editReply({
+          content: 'Rotation selection timed out.',
+          components: [],
+        });
+      }
+    });
   },
 };
