@@ -112,7 +112,7 @@ export default {
           content: 'Rotation generated!',
           components: [],
         });
-        await interaction.channel.send(formatRotation(selectedPlayers));
+        await interaction.followUp(formatRotation(selectedPlayers));
       }
     });
 
