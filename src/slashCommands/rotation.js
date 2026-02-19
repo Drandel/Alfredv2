@@ -94,10 +94,12 @@ export default {
         return member ? member.displayName : id;
       });
 
+      // Remove the ephemeral menu and send a public message with the result
       await selection.update({
-        content: formatRotation(selectedPlayers),
+        content: 'Rotation generated!',
         components: [],
       });
+      await interaction.channel.send(formatRotation(selectedPlayers));
     } catch {
       await interaction.editReply({
         content: 'Rotation selection timed out.',
