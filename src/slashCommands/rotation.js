@@ -61,35 +61,36 @@ export default {
     }
 
     // Build interactive select menu with all members pre-selected
-    const options = members.map(member => ({
-      label: member.displayName,
-      value: member.id,
-      default: true,
-    }));
-
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId('rotation-select')
-      .setPlaceholder('Select players for the rotation')
-      .setMinValues(2)
-      .setMaxValues(options.length)
-      .addOptions(options);
+    const buildSelectRow = (currentSelectedIds) => {
+      const updatedOptions = members.map(member => ({
+        label: member.displayName,
+        value: member.id,
+        default: currentSelectedIds.includes(member.id),
+      }));
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId('rotation-select')
+        .setPlaceholder('Select players for the rotation')
+        .setMinValues(2)
+        .setMaxValues(members.size)
+        .addOptions(updatedOptions);
+      return new ActionRowBuilder().addComponents(menu);
+    };
 
     const submitButton = new ButtonBuilder()
       .setCustomId('rotation-submit')
       .setLabel('Generate Rotation')
       .setStyle(ButtonStyle.Primary);
 
-    const selectRow = new ActionRowBuilder().addComponents(selectMenu);
     const buttonRow = new ActionRowBuilder().addComponents(submitButton);
-
-    const reply = await interaction.reply({
-      content: '**Select players for the rotation:**\nDeselect anyone you want to exclude, then hit **Generate Rotation**.',
-      components: [selectRow, buttonRow],
-      ephemeral: true,
-    });
 
     // Track current selections (start with all members selected)
     let selectedIds = members.map(member => member.id);
+
+    const reply = await interaction.reply({
+      content: `**Select players for the rotation** (${selectedIds.length} selected):\nDeselect anyone you want to exclude, then hit **Generate Rotation**.`,
+      components: [buildSelectRow(selectedIds), buttonRow],
+      ephemeral: true,
+    });
 
     const collector = reply.createMessageComponentCollector({
       filter: i => i.user.id === interaction.user.id,
@@ -97,31 +98,43 @@ export default {
     });
 
     collector.on('collect', async (i) => {
-      if (i.customId === 'rotation-select') {
-        selectedIds = i.values;
-        await i.deferUpdate();
-      } else if (i.customId === 'rotation-submit') {
-        collector.stop('submitted');
+      try {
+        if (i.customId === 'rotation-select') {
+          selectedIds = i.values;
+          await i.update({
+            content: `**Select players for the rotation** (${selectedIds.length} selected):\nDeselect anyone you want to exclude, then hit **Generate Rotation**.`,
+            components: [buildSelectRow(selectedIds), buttonRow],
+          });
+        } else if (i.customId === 'rotation-submit') {
+          await i.deferUpdate();
+          collector.stop('submitted');
 
-        const selectedPlayers = selectedIds.map(id => {
-          const member = members.get(id);
-          return member ? member.displayName : id;
-        });
+          const selectedPlayers = selectedIds.map(id => {
+            const member = members.get(id);
+            return member ? member.displayName : id;
+          });
 
-        await i.update({
-          content: 'Rotation generated!',
-          components: [],
-        });
-        await interaction.followUp(formatRotation(selectedPlayers));
+          await i.editReply({
+            content: 'Rotation generated!',
+            components: [],
+          });
+          await interaction.followUp(formatRotation(selectedPlayers));
+        }
+      } catch (err) {
+        console.error('Rotation collector error:', err);
       }
     });
 
-    collector.on('end', (_, reason) => {
+    collector.on('end', async (_, reason) => {
       if (reason !== 'submitted') {
-        interaction.editReply({
-          content: 'Rotation selection timed out.',
-          components: [],
-        });
+        try {
+          await interaction.editReply({
+            content: 'Rotation selection timed out.',
+            components: [],
+          });
+        } catch {
+          // Interaction token may have expired — nothing to do
+        }
       }
     });
   },
