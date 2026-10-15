@@ -12,5 +12,11 @@ export const config = {
     channelId: process.env.ENS_CHANNEL_ID || '',
     pollIntervalSeconds: Number(process.env.ENS_POLL_INTERVAL_SECONDS) || 60,
     offlineThreshold: Number(process.env.ENS_OFFLINE_THRESHOLD) || 3,
+    restartUserIds: process.env.ENS_RESTART_USER_IDS ? process.env.ENS_RESTART_USER_IDS.split(',').map(id => id.trim()).filter(Boolean) : [],
+  },
+  pterodactyl: {
+    panelUrl: (process.env.PTERO_PANEL_URL || '').replace(/\/+$/, ''),
+    apiKey: process.env.PTERO_API_KEY || '',
+    serverId: process.env.PTERO_SERVER_ID || '',
   },
 };

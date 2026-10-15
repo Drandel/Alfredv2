@@ -107,9 +107,13 @@ Prefix commands work immediately on restart — no deploy step needed since they
 | `STEAM_API_KEY`    | No       | Steam Web API key for `/gamenews` news tracking                                                      |
 | `ENS_HOST`         | No       | Enshrouded server IP/hostname. Leave blank to disable the Enshrouded monitor.                        |
 | `ENS_QUERY_PORT`   | No       | Enshrouded Steam query port (default: `15637`; Pine Hosting assigns its own — check the panel)        |
-| `ENS_CHANNEL_ID`   | No       | Channel for the live status message and server events. Required for the background monitor.         |
+| `ENS_CHANNEL_ID`   | No       | Channel for the live status message. Required for the background monitor.                            |
 | `ENS_POLL_INTERVAL_SECONDS` | No | How often to query the server, in seconds (default: `60`)                                         |
 | `ENS_OFFLINE_THRESHOLD` | No  | Consecutive failed queries before the server is reported offline (default: `3`)                    |
+| `ENS_RESTART_USER_IDS` | No   | Comma-separated Discord user IDs allowed to run `/enshrouded restart`                                |
+| `PTERO_PANEL_URL`  | No       | Game panel URL, e.g. `https://panel.pinehosting.com` (needed for `/enshrouded restart`)              |
+| `PTERO_API_KEY`    | No       | Pterodactyl client API key (`ptlc_...`) from the panel's API Credentials page                         |
+| `PTERO_SERVER_ID`  | No       | Short server identifier from the panel URL (e.g. `dfee0e15` in `/server/dfee0e15`)                    |
 | `DROPLET_USER`     | No       | SSH user for production deployment (default: `root`)                                                 |
 | `DROPLET_IP`       | No       | IP address of the production server                                                                  |
 | `APP_DIR`          | No       | App directory on the production server (default: `/root/Alfredv2`)                                   |
@@ -121,12 +125,12 @@ Alfred can watch an Enshrouded dedicated server over the Steam query protocol (A
 
 ### What it does
 
-- **Live status message** — one message in `ENS_CHANNEL_ID` that the bot edits in place every poll: online/offline, server name, player count vs max, version, how long each player has been connected, and when it was last updated. The message ID is saved in `data/enshrouded.json`, so it survives restarts.
-- **Event posts** — the same channel gets a short post when the server goes offline, comes back online, or players join/leave.
+- **Live status message** — one message in `ENS_CHANNEL_ID` showing online/offline and since when, server name, player count vs max, and version. The server is queried every poll, but the message is only edited when something it shows actually changes. The message ID is saved in `data/enshrouded.json`, so it survives restarts. No other messages are posted to the channel.
 - **Outage debounce** — the server is only reported offline after `ENS_OFFLINE_THRESHOLD` consecutive failed queries (default 3), so a single dropped UDP packet doesn't cause a false alarm.
 - **`/enshrouded status`** — queries the server on demand and replies with the current status.
+- **`/getserverinfo`** — replies with the server name and IP address, with **Copy Name** / **Copy IP** buttons. Discord doesn't let bots write to the clipboard, so each button privately sends just that value — long-press → **Copy Text** on mobile, or triple-click on desktop.
 
-> **Player names aren't available.** Enshrouded answers A2S player queries with blank names, so join/leave posts are count-based ("A player joined — 2/8 online") and the status message lists players as "Player 1 · 42m".
+> **Player names aren't available.** Enshrouded answers A2S player queries with blank names, so the status message shows a player count only.
 
 ### Setup
 
@@ -145,10 +149,32 @@ To test the query from the bot's machine: `npx gamedig --type enshrouded --given
 
 ### Troubleshooting
 
-- **Status message deleted?** The bot posts a new one on the next poll and remembers the new ID.
+- **Status message deleted?** The bot posts a new one the next time the status changes (or on restart) and remembers the new ID.
 - **Channel unreachable or missing permissions?** The bot logs a `[Enshrouded]` warning and retries every poll — it won't crash.
 - **Moving the status message?** Change `ENS_CHANNEL_ID` and restart; a new message is created in the new channel. Delete the old one by hand.
 
-### Not supported: restarting the server from Discord
+### Restarting the server from Discord
 
-A `/enshrouded restart` command would need Pterodactyl client API keys, which Pine Hosting doesn't expose. `/enshrouded` uses subcommands so one can be added later if that changes.
+`/enshrouded restart` restarts the server through the Pine Hosting panel's Pterodactyl client API. All panel calls live in `src/services/pterodactyl.js`.
+
+- **Who can run it** — only Discord user IDs listed in `ENS_RESTART_USER_IDS`. Everyone else gets a private "not allowed" reply, and the attempt is logged.
+- **Confirm step** — the command shows a private **Restart / Cancel** prompt that expires after a minute.
+- **Cooldown** — one restart every 5 minutes.
+- **Status message** — switches to 🟡 **Restarting…** (with who requested it) and pauses outage detection until the panel reports a freshly started process and the game answers queries again (or 10 minutes pass).
+
+Setup:
+
+1. In the panel, go to **Account → API Credentials** and create a key. Under **Allowed IPs**, enter the bot server's IP so the key is useless anywhere else. Copy the full key — it's only shown once.
+2. Find the server identifier in the panel URL when viewing the server (`/server/dfee0e15` → `dfee0e15`).
+3. Add to `.env` and restart the bot:
+
+   ```
+   PTERO_PANEL_URL=https://panel.pinehosting.com
+   PTERO_API_KEY=ptlc_...
+   PTERO_SERVER_ID=dfee0e15
+   ENS_RESTART_USER_IDS=111111111111111111,222222222222222222
+   ```
+
+   Get user IDs with Developer Mode on → right-click a user → **Copy User ID**.
+
+> The API key can control every server on the Pine account. Keep it only in the production `.env` and keep the IP restriction on.
