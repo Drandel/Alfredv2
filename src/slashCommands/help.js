@@ -51,6 +51,16 @@ const commandDetails = {
       '• `/gamenews check` — Manually check for new articles right now',
     ].join('\n'),
   },
+  enshrouded: {
+    emoji: '🌫️',
+    description: [
+      'Check on the Enshrouded game server.',
+      '',
+      '• `/enshrouded status` — Query the server right now: online/offline, player count, and how long each player has been on',
+      '',
+      'Alfred also keeps a live status message in the server channel and posts when the server goes down, comes back, or players join/leave.',
+    ].join('\n'),
+  },
 };
 
 export default {
