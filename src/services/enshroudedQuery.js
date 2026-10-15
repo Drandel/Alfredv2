@@ -5,6 +5,10 @@ export function isConfigured() {
   return Boolean(config.enshrouded.host);
 }
 
+export function connectAddress() {
+  return `${config.enshrouded.host}:${config.enshrouded.queryPort}`;
+}
+
 // Queries the server over Steam A2S. Throws if the server doesn't answer.
 // Enshrouded reports player entries but leaves their names blank, so `name` is usually null.
 export async function queryServer() {
@@ -20,6 +24,7 @@ export async function queryServer() {
   return {
     name: result.name,
     version: result.version || null,
+    password: Boolean(result.password),
     playerCount: result.numplayers ?? result.players.length,
     maxPlayers: result.maxplayers,
     players: result.players.map(p => ({

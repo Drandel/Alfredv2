@@ -1,16 +1,20 @@
 import { config } from '../config.js';
 import * as storage from './enshroudedStorage.js';
 import { queryServer, isConfigured } from './enshroudedQuery.js';
-import { buildStatusEmbed, buildEventEmbed } from './enshroudedEmbeds.js';
+import { buildStatusEmbed } from './enshroudedEmbeds.js';
+import * as pterodactyl from './pterodactyl.js';
 
 const INITIAL_DELAY = 5 * 1000; // 5 seconds
 const UNKNOWN_MESSAGE = 10008;
+const RESTART_TIMEOUT = 10 * 60 * 1000; // give up on "Restarting…" after 10 minutes
 
 let intervalId = null;
+let monitorClient = null;
+let restart = null; // { userId, requestedAt } while a restart from Discord is in progress
 let polling = false;
 let consecutiveFailures = 0;
 let lastPlayers = []; // player list isn't persisted; it refills on the next successful query
-let lastCheckedAt = Date.now();
+let lastRendered = null; // skip Discord edits when the status embed hasn't changed
 let lastIssue = null;
 
 // Logs a channel/message problem once instead of every poll until it changes or recovers.
@@ -25,12 +29,11 @@ function handleFailure(err, now) {
   const threshold = config.enshrouded.offlineThreshold;
   console.warn(`[Enshrouded] Query failed (${consecutiveFailures}/${threshold}): ${err.message}`);
 
-  const prev = storage.get();
-  if (consecutiveFailures < threshold || prev.online === false) return [];
+  // Downtime during a requested restart is expected, so don't report it as an outage
+  if (restart || consecutiveFailures < threshold || storage.get().online === false) return;
 
   lastPlayers = [];
   storage.update({ online: false, since: now, playerCount: 0 });
-  return prev.online === true ? [{ type: 'offline' }] : [];
 }
 
 function handleSuccess(snapshot, now) {
@@ -38,17 +41,6 @@ function handleSuccess(snapshot, now) {
   lastPlayers = snapshot.players;
 
   const prev = storage.get();
-  const capacity = { playerCount: snapshot.playerCount, maxPlayers: snapshot.maxPlayers };
-  const events = [];
-
-  if (prev.online === false) {
-    events.push({ type: 'online', ...capacity });
-  } else if (prev.online === true) {
-    const delta = snapshot.playerCount - prev.playerCount;
-    if (delta > 0) events.push({ type: 'join', count: delta, ...capacity });
-    if (delta < 0) events.push({ type: 'leave', count: -delta, ...capacity });
-  }
-
   const changed = prev.online !== true
     || prev.playerCount !== snapshot.playerCount
     || prev.maxPlayers !== snapshot.maxPlayers
@@ -61,26 +53,41 @@ function handleSuccess(snapshot, now) {
       since: prev.online === true ? prev.since : now,
       name: snapshot.name,
       version: snapshot.version,
-      ...capacity,
+      playerCount: snapshot.playerCount,
+      maxPlayers: snapshot.maxPlayers,
     });
   }
+}
 
-  return events;
+// A restart is done once the panel shows a process started after the request and the game answers queries again.
+async function checkRestartDone(querySucceeded, now) {
+  if (!restart) return;
+  if (now - restart.requestedAt > RESTART_TIMEOUT) {
+    console.warn('[Enshrouded] Restart still not confirmed after 10 minutes — resuming normal monitoring');
+    restart = null;
+    return;
+  }
+  if (!querySucceeded) return;
+
+  try {
+    const { state, uptimeMs } = await pterodactyl.getServerState();
+    if (state === 'running' && uptimeMs < now - restart.requestedAt) {
+      console.log('[Enshrouded] Restart complete');
+      restart = null;
+      storage.update({ online: true, since: now });
+    }
+  } catch (err) {
+    console.warn('[Enshrouded] Could not check panel state:', err.message);
+  }
 }
 
 function currentView() {
   const state = storage.get();
-  return {
-    ...state,
-    players: state.online ? lastPlayers : [],
-    checkedAt: lastCheckedAt,
-  };
+  return { ...state, players: state.online ? lastPlayers : [], restarting: restart };
 }
 
-async function upsertStatusMessage(channel) {
-  const payload = {
-    embeds: [buildStatusEmbed(currentView(), `Updates every ${config.enshrouded.pollIntervalSeconds}s`)],
-  };
+async function upsertStatusMessage(channel, embed) {
+  const payload = { embeds: [embed] };
   const { statusMessageId } = storage.get();
 
   if (statusMessageId) {
@@ -97,7 +104,11 @@ async function upsertStatusMessage(channel) {
   storage.update({ statusMessageId: message.id });
 }
 
-async function publish(client, events) {
+async function publish(client) {
+  const embed = buildStatusEmbed(currentView(), `Checks every ${config.enshrouded.pollIntervalSeconds}s`);
+  const rendered = JSON.stringify(embed.toJSON());
+  if (rendered === lastRendered) return;
+
   let channel;
   try {
     channel = await client.channels.fetch(config.enshrouded.channelId);
@@ -110,16 +121,9 @@ async function publish(client, events) {
     return;
   }
 
-  for (const event of events) {
-    try {
-      await channel.send({ embeds: [buildEventEmbed(event)] });
-    } catch (err) {
-      console.error(`[Enshrouded] Failed to post ${event.type} event:`, err.message);
-    }
-  }
-
   try {
-    await upsertStatusMessage(channel);
+    await upsertStatusMessage(channel, embed);
+    lastRendered = rendered;
     lastIssue = null;
   } catch (err) {
     logIssue(`Can't update status message: ${err.message}`);
@@ -132,15 +136,15 @@ async function poll(client) {
 
   try {
     const now = Date.now();
-    let events;
+    let querySucceeded = false;
     try {
-      const snapshot = await queryServer();
-      events = handleSuccess(snapshot, now);
+      handleSuccess(await queryServer(), now);
+      querySucceeded = true;
     } catch (err) {
-      events = handleFailure(err, now);
+      handleFailure(err, now);
     }
-    lastCheckedAt = now;
-    await publish(client, events);
+    await checkRestartDone(querySucceeded, now);
+    await publish(client);
   } catch (err) {
     console.error('[Enshrouded] Poll failed:', err);
   } finally {
@@ -157,6 +161,7 @@ export function start(client) {
   }
 
   storage.load();
+  monitorClient = client;
 
   setTimeout(() => {
     poll(client);
@@ -164,4 +169,11 @@ export function start(client) {
   }, INITIAL_DELAY);
 
   console.log(`[Enshrouded] Monitoring ${config.enshrouded.host}:${config.enshrouded.queryPort} every ${config.enshrouded.pollIntervalSeconds}s`);
+}
+
+// Called after a restart is sent to the panel: shows "Restarting…" right away and pauses outage detection.
+export function markRestarting(userId) {
+  if (!monitorClient) return;
+  restart = { userId, requestedAt: Date.now() };
+  publish(monitorClient).catch(err => console.error('[Enshrouded] Failed to show restart status:', err));
 }

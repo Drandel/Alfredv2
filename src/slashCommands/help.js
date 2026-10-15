@@ -56,10 +56,15 @@ const commandDetails = {
     description: [
       'Check on the Enshrouded game server.',
       '',
-      '• `/enshrouded status` — Query the server right now: online/offline, player count, and how long each player has been on',
+      '• `/enshrouded status` — Query the server right now: online/offline, player count, and version',
+      '• `/enshrouded restart` — Restart the server (whitelisted users only, with a confirm step and a 5-minute cooldown)',
       '',
-      'Alfred also keeps a live status message in the server channel and posts when the server goes down, comes back, or players join/leave.',
+      'Alfred also keeps a live status message in the server channel that updates whenever the server goes up or down or the player count changes.',
     ].join('\n'),
+  },
+  getserverinfo: {
+    emoji: '🔗',
+    description: 'Get the Enshrouded server name and IP address so you can join. Includes **Copy Name** / **Copy IP** buttons that send you just the value, ready to copy.',
   },
 };
 
